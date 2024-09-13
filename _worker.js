@@ -8,9 +8,9 @@ let userID = '90cd4a77-141a-43c9-991b-08263cfe9c10';
 
 let proxyIP = '';// 小白勿动，该地址并不影响你的网速，这是给CF代理使用的。'cdn.xn--b6gac.eu.org, cdn-all.xn--b6gac.eu.org, workers.cloudflare.cyou'
 
-let sub = '';// 留空则使用内置订阅
+let sub = '';// 避免项目被滥用，现已取消内置订阅器
 let subconverter = 'SUBAPI.fxxk.dedyn.io';// clash订阅转换后端，目前使用CM的订阅转换功能。自带虚假uuid和host订阅。
-let subconfig = "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online.ini"; //订阅配置文件
+let subconfig = "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/config/ACL4SSR_Online_Mini_MultiMode.ini"; //订阅配置文件
 let subProtocol = 'https';
 // The user name and password do not contain special characters
 // Setting the address will ignore proxyIP
@@ -31,10 +31,42 @@ let noTLS = 'false';
 const expire = 4102329600;//2099-12-31
 let proxyIPs;
 let socks5s;
-let go2Socks5s = [];
-let addresses = [];
+let go2Socks5s = [
+	'*ttvnw.net',
+];
+let addresses = [
+	//当sub为空时启用本地优选域名/优选IP，若不带端口号 TLS默认端口为443，#号后为备注别名
+	/*
+	'Join.my.Telegram.channel.CMLiussss.to.unlock.more.premium.nodes.cf.090227.xyz#加入我的频道t.me/CMLiussss解锁更多优选节点',
+	'visa.cn:443',
+	'www.visa.com:8443',
+	'cis.visa.com:2053',
+	'africa.visa.com:2083',
+	'www.visa.com.sg:2087',
+	'www.visaeurope.at:2096',
+	'www.visa.com.mt:8443',
+	'qa.visamiddleeast.com',
+	'time.is',
+	'www.wto.org:8443',
+	'chatgpt.com:2087',
+	'icook.hk',
+	'104.17.0.0#IPv4',
+	'[2606:4700::]#IPv6'
+	*/
+];
 let addressesapi = [];
-let addressesnotls = [];
+let addressesnotls = [
+	//当sub为空且域名带有"worker"字样时启用本地优选域名/优选IP，若不带端口号 noTLS默认端口为80，#号后为备注别名
+	/*
+	'usa.visa.com',
+	'myanmar.visa.com:8080',
+	'www.visa.com.tw:8880',
+	'www.visaeurope.ch:2052',
+	'www.visa.com.br:2082',
+	'www.visasoutheasteurope.com:2086',
+	'[2606:4700::1]:2095#IPv6'
+	*/
+];
 let addressesnotlsapi = [];
 let addressescsv = [];
 let DLS = 8;
@@ -106,13 +138,7 @@ export default {
 			DLS = env.DLS || DLS;
 			BotToken = env.TGTOKEN || BotToken;
 			ChatID = env.TGID || ChatID; 
-			if( env.GO2SOCKS5 ) {
-				const go2Socks5 = env.GO2SOCKS5;
-				var addGo2Socks5 = go2Socks5.replace(/[\r\n]+/g, '\n').replace(/,+/g, '\n');
-				if (addGo2Socks5.charAt(0) == '\n') addGo2Socks5 = addGo2Socks5.slice(1);
-				if (addGo2Socks5.charAt(addGo2Socks5.length - 1) == '\n') addGo2Socks5 = addGo2Socks5.slice(0, addGo2Socks5.length - 1);
-				go2Socks5s = addGo2Socks5.split('\n');
-			}
+			if(env.GO2SOCKS5) go2Socks5s = await ADD(env.GO2SOCKS5);
 			const upgradeHeader = request.headers.get('Upgrade');
 			const url = new URL(request.url);
 			if (url.searchParams.has('sub') && url.searchParams.get('sub') !== '') sub = url.searchParams.get('sub');
@@ -134,15 +160,6 @@ export default {
 					return new Response(`${fakeConfig}`, { status: 200 });
 				case `/${userID}`: {
 					await sendMessage(`#获取订阅 ${FileName}`, request.headers.get('CF-Connecting-IP'), `UA: ${UA}</tg-spoiler>\n域名: ${url.hostname}\n<tg-spoiler>入口: ${url.pathname + url.search}</tg-spoiler>`);
-					if ((!sub || sub == '') && (addresses.length + addressesapi.length + addressesnotls.length + addressesnotlsapi.length + addressescsv.length) == 0){
-						if (request.headers.get('Host').includes(".workers.dev")) {
-							sub = 'noTLS.fxxk.dedyn.io'; 
-							subconfig = env.SUBCONFIG || 'https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online.ini';
-						} else {
-							sub = 'VLESS.fxxk.dedyn.io';
-							subconfig = env.SUBCONFIG || "https://raw.githubusercontent.com/cmliu/ACL4SSR/main/Clash/config/ACL4SSR_Online_Full_MultiMode.ini";
-						}
-					}
 					const vlessConfig = await getVLESSConfig(userID, request.headers.get('Host'), sub, UA, RproxyIP, url);
 					const now = Date.now();
 					//const timestamp = Math.floor(now / 1000);
@@ -354,7 +371,7 @@ async function vlessOverWSHandler(request) {
  */
 async function handleTCPOutBound(remoteSocket, addressType, addressRemote, portRemote, rawClientData, webSocket, vlessResponseHeader, log,) {
 	async function useSocks5Pattern(address) {
-		if ( go2Socks5s.includes(atob('YWxsIGlu')) ) return true;
+		if ( go2Socks5s.includes(atob('YWxsIGlu')) || go2Socks5s.includes(atob('Kg==')) ) return true;
 		return go2Socks5s.some(pattern => {
 			let regexPattern = pattern.replace(/\*/g, '.*');
 			let regex = new RegExp(`^${regexPattern}$`, 'i');
@@ -1178,6 +1195,36 @@ async function ADD(envadd) {
 	return add;
 }
 
+function checkSUB(host) {
+	if ((!sub || sub == '') && (addresses.length + addressesapi.length + addressesnotls.length + addressesnotlsapi.length + addressescsv.length) == 0){
+		addresses = [
+			'Join.my.Telegram.channel.CMLiussss.to.unlock.more.premium.nodes.cf.090227.xyz#加入我的频道t.me/CMLiussss解锁更多优选节点',
+			'visa.cn:443',
+			'www.visa.com:8443',
+			'cis.visa.com:2053',
+			'africa.visa.com:2083',
+			'www.visa.com.sg:2087',
+			'www.visaeurope.at:2096',
+			'www.visa.com.mt:8443',
+			'qa.visamiddleeast.com',
+			'time.is',
+			'www.wto.org:8443',
+			'chatgpt.com:2087',
+			'icook.hk',
+			//'104.17.0.0#IPv4',
+			'[2606:4700::]#IPv6'
+		];
+		if (host.includes(".workers.dev")) addressesnotls = [
+			'usa.visa.com:2095',
+			'myanmar.visa.com:8080',
+			'www.visa.com.tw:8880',
+			'www.visaeurope.ch:2052',
+			'www.visa.com.br:2082',
+			'www.visasoutheasteurope.com:2086'
+		];
+	}
+}
+
 const 啥啥啥_写的这是啥啊 = 'dmxlc3M=';
 function 配置信息(UUID, 域名地址) {
 	const 协议类型 = atob(啥啥啥_写的这是啥啊);
@@ -1231,6 +1278,7 @@ let subParams = ['sub','base64','b64','clash','singbox','sb'];
  * @returns {Promise<string>}
  */
 async function getVLESSConfig(userID, hostName, sub, UA, RproxyIP, _url) {
+	checkSUB(hostName);
 	const userAgent = UA.toLowerCase();
 	const Config = 配置信息(userID , hostName);
 	const v2ray = Config[0];
@@ -1267,12 +1315,16 @@ async function getVLESSConfig(userID, hostName, sub, UA, RproxyIP, _url) {
 		});
 
 		let socks5List = '';
-		if( go2Socks5s.length > 0 && enableSocks ) socks5List = `SOCKS5（白名单）: \n  ${go2Socks5s.join('\n  ')}\n`
+		if( go2Socks5s.length > 0 && enableSocks ) {
+			socks5List = `${decodeURIComponent('SOCKS5%EF%BC%88%E7%99%BD%E5%90%8D%E5%8D%95%EF%BC%89%3A%20')}`;
+			if (go2Socks5s.includes(atob('YWxsIGlu'))||go2Socks5s.includes(atob('Kg=='))) socks5List += `${decodeURIComponent('%E6%89%80%E6%9C%89%E6%B5%81%E9%87%8F')}\n`;
+			else socks5List += `\n  ${go2Socks5s.join('\n  ')}\n`;
+		}
 
 		let 订阅器 = '';
 		if (!sub || sub == '') {
 			if (enableSocks) 订阅器 += `CFCDN（访问方式）: Socks5\n  ${newSocks5s.join('\n  ')}\n${socks5List}`;
-			else if (!proxyIP || proxyIP =='') 订阅器 += `CFCDN（访问方式）: ProxyIP\n  ${proxyIPs.join('\n  ')}\n`;
+			else if (proxyIP && proxyIP != '') 订阅器 += `CFCDN（访问方式）: ProxyIP\n  ${proxyIPs.join('\n  ')}\n`;
 			else 订阅器 += `CFCDN（访问方式）: 无法访问, 需要您设置 proxyIP/PROXYIP ！！！\n`;
 			订阅器 += `\n您的订阅内容由 内置 addresses/ADD* 参数变量提供\n`;
 			if (addresses.length > 0) 订阅器 += `ADD（TLS优选域名&IP）: \n  ${addresses.join('\n  ')}\n`;
@@ -1282,7 +1334,7 @@ async function getVLESSConfig(userID, hostName, sub, UA, RproxyIP, _url) {
 			if (addressescsv.length > 0) 订阅器 += `ADDCSV（IPTest测速csv文件 限速 ${DLS} ）: \n  ${addressescsv.join('\n  ')}\n`;
 		} else {
 			if (enableSocks) 订阅器 += `CFCDN（访问方式）: Socks5\n  ${newSocks5s.join('\n  ')}\n${socks5List}`;
-			else if (!proxyIP || proxyIP =='') 订阅器 += `CFCDN（访问方式）: ProxyIP\n  ${proxyIPs.join('\n  ')}\n`;
+			else if (proxyIP && proxyIP != '') 订阅器 += `CFCDN（访问方式）: ProxyIP\n  ${proxyIPs.join('\n  ')}\n`;
 			else if (RproxyIP == 'true') 订阅器 += `CFCDN（访问方式）: 自动获取ProxyIP\n`;
 			else 订阅器 += `CFCDN（访问方式）: 无法访问, 需要您设置 proxyIP/PROXYIP ！！！\n`
 			订阅器 += `\nSUB（优选订阅生成器）: ${sub}`;
@@ -1632,7 +1684,7 @@ function subAddresses(host,UUID,noTLS,newAddressesapi,newAddressescsv,newAddress
 		const uniqueAddressesnotls = [...new Set(addressesnotls)];
 
 		notlsresponseBody = uniqueAddressesnotls.map(address => {
-			let port = "80";
+			let port = "-1";
 			let addressid = address;
 		
 			const match = addressid.match(regex);
@@ -1663,7 +1715,7 @@ function subAddresses(host,UUID,noTLS,newAddressesapi,newAddressescsv,newAddress
 			}
 
 			const httpPorts = ["8080","8880","2052","2082","2086","2095"];
-			if (!isValidIPv4(address) && port == "80") {
+			if (!isValidIPv4(address) && port == "-1") {
 				for (let httpPort of httpPorts) {
 					if (address.includes(httpPort)) {
 						port = httpPort;
@@ -1671,6 +1723,7 @@ function subAddresses(host,UUID,noTLS,newAddressesapi,newAddressescsv,newAddress
 					}
 				}
 			}
+			if (port == "-1") port = "80";
 			
 			let 伪装域名 = host ;
 			let 最终路径 = '/?ed=2560' ;
@@ -1689,7 +1742,7 @@ function subAddresses(host,UUID,noTLS,newAddressesapi,newAddressescsv,newAddress
 	const uniqueAddresses = [...new Set(addresses)];
 
 	const responseBody = uniqueAddresses.map(address => {
-		let port = "443";
+		let port = "-1";
 		let addressid = address;
 
 		const match = addressid.match(regex);
@@ -1720,7 +1773,7 @@ function subAddresses(host,UUID,noTLS,newAddressesapi,newAddressescsv,newAddress
 		}
 
 		const httpsPorts = ["2053","2083","2087","2096","8443"];
-		if (!isValidIPv4(address) && port == "443") {
+		if (!isValidIPv4(address) && port == "-1") {
 			for (let httpsPort of httpsPorts) {
 				if (address.includes(httpsPort)) {
 					port = httpsPort;
@@ -1728,6 +1781,7 @@ function subAddresses(host,UUID,noTLS,newAddressesapi,newAddressescsv,newAddress
 				}
 			}
 		}
+		if (port == "-1") port = "443";
 		
 		let 伪装域名 = host ;
 		let 最终路径 = '/?ed=2560' ;
